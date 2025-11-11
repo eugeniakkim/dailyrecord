@@ -63,15 +63,69 @@
             const [currentDate, setCurrentDate] = useState(new Date());
             const [editingActivity, setEditingActivity] = useState(null);
 
+            // 기본 샘플 데이터
+            const defaultActivities = [
+                {
+                    id: 1,
+                    user: 'tide',
+                    type: 'subscription',
+                    date: '2025-11-10',
+                    apartmentName: '반포 래미안 트리니원',
+                    size: '',
+                    price: '20억',
+                    announcementDate: '2025-11-19'
+                },
+                {
+                    id: 2,
+                    user: 'tide',
+                    type: 'snack',
+                    date: '2025-11-10',
+                    food: '떡볶이, 김1개',
+                    calories: '',
+                    note: ''
+                },
+                {
+                    id: 3,
+                    user: 'nurungi',
+                    type: 'digestive',
+                    date: '2025-11-10',
+                    productName: '파인애플',
+                    time: '10:00',
+                    note: ''
+                },
+                {
+                    id: 4,
+                    user: 'tide',
+                    type: 'exercise',
+                    date: '2025-11-06',
+                    exerciseType: 'pt',
+                    duration: '30',
+                    note: ''
+                }
+            ];
+
             // 데이터 로드
             useEffect(() => {
                 const loadedData = localStorage.getItem('userActivities');
                 if (loadedData) {
                     try {
-                        setActivities(JSON.parse(loadedData));
+                        const parsed = JSON.parse(loadedData);
+                        // 기본 데이터와 저장된 데이터 병합 (중복 제거)
+                        const merged = [...defaultActivities];
+                        parsed.forEach(item => {
+                            // 기본 데이터 ID(1-4)가 아닌 것만 추가
+                            if (!defaultActivities.find(d => d.id === item.id)) {
+                                merged.push(item);
+                            }
+                        });
+                        setActivities(merged);
                     } catch (e) {
                         console.error('데이터 로드 실패:', e);
+                        setActivities(defaultActivities);
                     }
+                } else {
+                    // 저장된 데이터가 없으면 기본 데이터 사용
+                    setActivities(defaultActivities);
                 }
             }, []);
 
@@ -81,6 +135,15 @@
                 setActivities(data);
             };
 
+            // 데이터 초기화 함수
+            const resetToDefault = () => {
+                if (confirm('⚠️ 모든 데이터가 삭제되고 기본 샘플 데이터로 초기화됩니다.\n\n진행하시겠습니까?\n\n(백업이 필요하면 먼저 "CSV로 저장"을 클릭하세요!)')) {
+                    localStorage.removeItem('userActivities');
+                    setActivities(defaultActivities);
+                    alert('✅ 데이터가 초기화되었습니다.');
+                }
+            };
+
             // CSV로 저장 - 모든 컬럼 포함
             const exportToCSV = () => {
                 const csvData = activities.map(item => {
@@ -88,16 +151,16 @@
                         사용자: USERS[item.user].name,
                         활동타입: ACTIVITY_TYPES[item.type].name,
                         날짜: item.date,
-                        운동종류: item.type === 'exercise' ? (item.exerciseType || '') : '',
-                        시간_분: item.type === 'exercise' ? (item.duration || '') : '',
-                        음식: item.type === 'snack' ? (item.food || '') : '',
-                        칼로리: item.type === 'snack' ? (item.calories || '') : '',
-                        제품명: item.type === 'digestive' ? (item.productName || '') : '',
-                        복용시간: item.type === 'digestive' ? (item.time || '') : '',
-                        아파트명: item.type === 'subscription' ? (item.apartmentName || '') : '',
-                        평형: item.type === 'subscription' ? (item.size || '') : '',
-                        가격_만원: item.type === 'subscription' ? (item.price || '') : '',
-                        발표일: item.type === 'subscription' ? (item.announcementDate || '') : '',
+                        운동종류: item.exerciseType || '',
+                        시간_분: item.duration || '',
+                        음식: item.food || '',
+                        칼로리: item.calories || '',
+                        제품명: item.productName || '',
+                        복용시간: item.time || '',
+                        아파트명: item.apartmentName || '',
+                        평형: item.size || '',
+                        가격_만원: item.price || '',
+                        발표일: item.announcementDate || '',
                         메모: item.note || ''
                     };
                 });
@@ -1020,7 +1083,7 @@
 
                             {/* CSV 저장/불러오기 */}
                             <div className="space-y-3">
-                                <div className="flex gap-2">
+                                <div className="flex flex-wrap gap-2">
                                     <button
                                         onClick={exportToCSV}
                                         className="flex items-center gap-2 px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-all"
@@ -1039,6 +1102,14 @@
                                             id="csv-upload-input"
                                         />
                                     </label>
+                                    <button
+                                        onClick={resetToDefault}
+                                        className="flex items-center gap-2 px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-all"
+                                        title="모든 데이터를 삭제하고 기본 샘플로 초기화"
+                                    >
+                                        <X size={18} />
+                                        데이터 초기화
+                                    </button>
                                 </div>
                                 
                                 {/* Drag & Drop 영역 */}
