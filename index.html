@@ -1,0 +1,1105 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>일상 기록 관리</title>
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', sans-serif;
+            background-color: #0f172a;
+        }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect } = React;
+
+        // 아이콘 컴포넌트들
+        const Calendar = ({ size = 20 }) => <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>;
+        const Dumbbell = ({ size = 20 }) => <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M14.4 14.4L9.6 9.6"></path><path d="M18.657 21.485a2 2 0 1 1-2.829-2.828l-1.767 1.768a2 2 0 1 1-2.829-2.829l6.364-6.364a2 2 0 1 1 2.829 2.829l-1.768 1.767a2 2 0 1 1 2.828 2.829z"></path><path d="m21.5 21.5-1.4-1.4"></path><path d="M3.9 3.9 2.5 2.5"></path><path d="M6.404 12.768a2 2 0 1 1-2.829-2.829l1.768-1.767a2 2 0 1 1-2.828-2.829l2.828-2.828a2 2 0 1 1 2.829 2.828l1.767-1.768a2 2 0 1 1 2.829 2.829z"></path></svg>;
+        const Moon = ({ size = 20 }) => <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"></path></svg>;
+        const Pill = ({ size = 20 }) => <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="m10.5 20.5 10-10a4.95 4.95 0 1 0-7-7l-10 10a4.95 4.95 0 1 0 7 7Z"></path><path d="m8.5 8.5 7 7"></path></svg>;
+        const Home = ({ size = 20 }) => <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg>;
+        const BarChart3 = ({ size = 20 }) => <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M3 3v18h18"></path><path d="M18 17V9"></path><path d="M13 17V5"></path><path d="M8 17v-3"></path></svg>;
+        const Plus = ({ size = 20 }) => <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M5 12h14"></path><path d="M12 5v14"></path></svg>;
+        const X = ({ size = 20 }) => <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M18 6 6 18"></path><path d="m6 6 12 12"></path></svg>;
+        const Edit = ({ size = 20 }) => <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>;
+        const ChevronLeft = ({ size = 20 }) => <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="15 18 9 12 15 6"></polyline></svg>;
+        const ChevronRight = ({ size = 20 }) => <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="9 18 15 12 9 6"></polyline></svg>;
+        const Download = ({ size = 20 }) => <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>;
+        const Upload = ({ size = 20 }) => <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>;
+
+        // 사용자 정의
+        const USERS = {
+            tide: { name: '타이드', emoji: '🐱', color: 'blue' },
+            nurungi: { name: '누렁이', emoji: '🐕', color: 'amber' }
+        };
+
+        // 활동 타입
+        const ACTIVITY_TYPES = {
+            exercise: { name: '운동', icon: Dumbbell, color: 'green' },
+            snack: { name: '야식', icon: Moon, color: 'purple' },
+            digestive: { name: '소화제', icon: Pill, color: 'pink' },
+            subscription: { name: '청약', icon: Home, color: 'orange' }
+        };
+
+        const DailyTracker = () => {
+            const [currentUser, setCurrentUser] = useState('all');
+            const [currentPage, setCurrentPage] = useState('dashboard');
+            const [timeFilter, setTimeFilter] = useState('week');
+            
+            const [activities, setActivities] = useState([]);
+            const [showForm, setShowForm] = useState(false);
+            const [currentDate, setCurrentDate] = useState(new Date());
+            const [editingActivity, setEditingActivity] = useState(null);
+
+            // 데이터 로드
+            useEffect(() => {
+                const loadedData = localStorage.getItem('userActivities');
+                if (loadedData) {
+                    try {
+                        setActivities(JSON.parse(loadedData));
+                    } catch (e) {
+                        console.error('데이터 로드 실패:', e);
+                    }
+                }
+            }, []);
+
+            // 데이터 저장
+            const saveData = (data) => {
+                localStorage.setItem('userActivities', JSON.stringify(data));
+                setActivities(data);
+            };
+
+            // CSV로 저장 - 모든 컬럼 포함
+            const exportToCSV = () => {
+                const csvData = activities.map(item => {
+                    return {
+                        사용자: USERS[item.user].name,
+                        활동타입: ACTIVITY_TYPES[item.type].name,
+                        날짜: item.date,
+                        운동종류: item.type === 'exercise' ? (item.exerciseType || '') : '',
+                        시간_분: item.type === 'exercise' ? (item.duration || '') : '',
+                        음식: item.type === 'snack' ? (item.food || '') : '',
+                        칼로리: item.type === 'snack' ? (item.calories || '') : '',
+                        제품명: item.type === 'digestive' ? (item.productName || '') : '',
+                        복용시간: item.type === 'digestive' ? (item.time || '') : '',
+                        아파트명: item.type === 'subscription' ? (item.apartmentName || '') : '',
+                        평형: item.type === 'subscription' ? (item.size || '') : '',
+                        가격_만원: item.type === 'subscription' ? (item.price || '') : '',
+                        발표일: item.type === 'subscription' ? (item.announcementDate || '') : '',
+                        메모: item.note || ''
+                    };
+                });
+
+                const csv = Papa.unparse(csvData);
+                const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
+                const link = document.createElement('a');
+                const url = URL.createObjectURL(blob);
+                
+                link.setAttribute('href', url);
+                link.setAttribute('download', `activities_${new Date().toISOString().split('T')[0]}.csv`);
+                link.style.visibility = 'hidden';
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+            };
+
+            // CSV에서 불러오기
+            const importFromCSV = (event) => {
+                const file = event.target.files[0];
+                if (!file) return;
+
+                Papa.parse(file, {
+                    header: true,
+                    complete: (results) => {
+                        try {
+                            const importedData = results.data
+                                .filter(row => row.사용자 && row.활동타입 && row.날짜)
+                                .map(row => {
+                                    const userId = Object.keys(USERS).find(
+                                        key => USERS[key].name === row.사용자
+                                    );
+                                    const typeId = Object.keys(ACTIVITY_TYPES).find(
+                                        key => ACTIVITY_TYPES[key].name === row.활동타입
+                                    );
+
+                                    const base = {
+                                        id: Date.now() + Math.random(),
+                                        user: userId || 'tide',
+                                        type: typeId || 'exercise',
+                                        date: row.날짜
+                                    };
+
+                                    if (typeId === 'exercise') {
+                                        return { ...base, exerciseType: row.운동종류, duration: row.시간_분, note: row.메모 };
+                                    } else if (typeId === 'snack') {
+                                        return { ...base, food: row.음식, calories: row.칼로리, note: row.메모 };
+                                    } else if (typeId === 'digestive') {
+                                        return { ...base, productName: row.제품명, time: row.복용시간, note: row.메모 };
+                                    } else if (typeId === 'subscription') {
+                                        return { ...base, apartmentName: row.아파트명, size: row.평형, price: row.가격_만원, announcementDate: row.발표일 };
+                                    }
+                                    return base;
+                                });
+
+                            const merged = [...activities, ...importedData];
+                            saveData(merged);
+                            alert(`${importedData.length}개의 활동을 불러왔습니다.`);
+                        } catch (e) {
+                            alert('CSV 파일 형식이 올바르지 않습니다.');
+                            console.error(e);
+                        }
+                    },
+                    error: (error) => {
+                        alert('파일 읽기 실패');
+                        console.error(error);
+                    }
+                });
+                event.target.value = '';
+            };
+
+            const addActivity = (activity, activityType) => {
+                const newActivity = {
+                    id: Date.now(),
+                    user: activity.user || (currentUser === 'all' ? 'tide' : currentUser),
+                    type: activityType,
+                    ...activity
+                };
+                const newActivities = [...activities, newActivity];
+                saveData(newActivities);
+                setShowForm(false);
+            };
+
+            const updateActivity = (id, updatedData) => {
+                const updated = activities.map(item => 
+                    item.id === id ? { ...item, ...updatedData } : item
+                );
+                saveData(updated);
+                setEditingActivity(null);
+                setShowForm(false);
+            };
+
+            const deleteActivity = (id) => {
+                const updated = activities.filter(item => item.id !== id);
+                saveData(updated);
+            };
+
+            const filterByDateAndUser = (data) => {
+                const now = new Date();
+                const filtered = data.filter(item => {
+                    if (currentUser !== 'all' && item.user !== currentUser) return false;
+                    
+                    const itemDate = new Date(item.date);
+                    const diffTime = now - itemDate;
+                    const diffDays = diffTime / (1000 * 60 * 60 * 24);
+                    
+                    if (timeFilter === 'week') return diffDays <= 7;
+                    if (timeFilter === '3months') return diffDays <= 90;
+                    if (timeFilter === 'month') return diffDays <= 30;
+                    return true;
+                });
+                
+                return filtered.sort((a, b) => new Date(b.date) - new Date(a.date));
+            };
+
+            const getDaysInMonth = (date) => {
+                const year = date.getFullYear();
+                const month = date.getMonth();
+                const firstDay = new Date(year, month, 1);
+                const lastDay = new Date(year, month + 1, 0);
+                const daysInMonth = lastDay.getDate();
+                const startingDayOfWeek = firstDay.getDay();
+
+                const days = [];
+                for (let i = 0; i < startingDayOfWeek; i++) {
+                    days.push(null);
+                }
+                for (let i = 1; i <= daysInMonth; i++) {
+                    days.push(i);
+                }
+                return days;
+            };
+
+            const getActivitiesForDate = (day) => {
+                if (!day) return [];
+                const dateStr = `${currentDate.getFullYear()}-${String(currentDate.getMonth() + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+                return activities.filter(a => {
+                    if (a.date !== dateStr) return false;
+                    if (currentUser !== 'all' && a.user !== currentUser) return false;
+                    return true;
+                });
+            };
+
+            const changeMonth = (delta) => {
+                const newDate = new Date(currentDate);
+                newDate.setMonth(newDate.getMonth() + delta);
+                setCurrentDate(newDate);
+            };
+
+            const NavButton = ({ page, icon: Icon, label }) => (
+                <button
+                    onClick={() => { 
+                        setCurrentPage(page); 
+                        setShowForm(false); 
+                        setEditingActivity(null);
+                    }}
+                    className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-all ${
+                        currentPage === page
+                            ? 'bg-blue-500 text-white shadow-lg'
+                            : 'bg-slate-700 text-gray-300 hover:bg-slate-600'
+                    }`}
+                >
+                    <Icon size={20} />
+                    {label}
+                </button>
+            );
+
+            // 대시보드 페이지
+            const DashboardPage = () => {
+                const allActivities = filterByDateAndUser(activities);
+                
+                const stats = {
+                    exercise: allActivities.filter(a => a.type === 'exercise').length,
+                    snack: allActivities.filter(a => a.type === 'snack').length,
+                    digestive: allActivities.filter(a => a.type === 'digestive').length,
+                    subscription: allActivities.filter(a => a.type === 'subscription').length,
+                };
+
+                return (
+                    <div>
+                        <h2 className="text-2xl font-bold mb-6 flex items-center gap-2 text-white">
+                            <BarChart3 size={28} />
+                            대시보드
+                        </h2>
+
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+                            {Object.entries(ACTIVITY_TYPES).map(([key, value]) => {
+                                const Icon = value.icon;
+                                return (
+                                    <div key={key} className={`bg-${value.color}-50 p-6 rounded-xl shadow-md`}>
+                                        <div className="flex items-center justify-between mb-2">
+                                            <Icon size={32} />
+                                            <span className="text-3xl font-bold">{stats[key]}</span>
+                                        </div>
+                                        <p className="text-gray-700 font-medium">{value.name}</p>
+                                    </div>
+                                );
+                            })}
+                        </div>
+
+                        <div className="mb-6">
+                            <h3 className="text-lg font-bold mb-4 text-white">최근 활동</h3>
+                            <div className="space-y-3">
+                                {allActivities.slice(0, 10).map((activity) => {
+                                    const ActivityIcon = ACTIVITY_TYPES[activity.type].icon;
+                                    return (
+                                        <div key={activity.id} className="bg-slate-700 p-4 rounded-lg shadow-md flex justify-between items-center">
+                                            <div className="flex items-center gap-4">
+                                                <ActivityIcon size={24} className="text-gray-300" />
+                                                <div>
+                                                    <div className="flex items-center gap-2">
+                                                        <span className={`px-2 py-1 rounded text-xs font-bold bg-${USERS[activity.user].color}-100 text-${USERS[activity.user].color}-700 flex items-center gap-1`}>
+                                                            <span>{USERS[activity.user].emoji}</span>
+                                                            <span>{USERS[activity.user].name}</span>
+                                                        </span>
+                                                        <span className="font-bold text-white">{ACTIVITY_TYPES[activity.type].name}</span>
+                                                    </div>
+                                                    <p className="text-sm text-gray-400">{activity.date}</p>
+                                                </div>
+                                            </div>
+                                            <div className="flex gap-2">
+                                                <button
+                                                    onClick={() => {
+                                                        setEditingActivity(activity);
+                                                        setCurrentPage(activity.type);
+                                                        setShowForm(true);
+                                                    }}
+                                                    className="text-blue-500 hover:text-blue-700 p-2"
+                                                    title="수정"
+                                                >
+                                                    <Edit size={18} />
+                                                </button>
+                                                <button
+                                                    onClick={() => deleteActivity(activity.id)}
+                                                    className="text-red-500 hover:text-red-700 p-2"
+                                                    title="삭제"
+                                                >
+                                                    <X size={18} />
+                                                </button>
+                                            </div>
+                                        </div>
+                                    );
+                                })}
+                                {allActivities.length === 0 && (
+                                    <div className="text-center py-12 text-gray-500">
+                                        <p>기록이 없습니다.</p>
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    </div>
+                );
+            };
+
+            // 1주일 보기 페이지
+            const WeekViewPage = () => {
+                const today = new Date();
+                const weekDays = [];
+                
+                for (let i = 6; i >= 0; i--) {
+                    const date = new Date(today);
+                    date.setDate(date.getDate() - i);
+                    weekDays.push(date);
+                }
+
+                const getActivitiesForWeekDay = (date) => {
+                    const dateStr = date.toISOString().split('T')[0];
+                    return activities.filter(a => {
+                        if (a.date !== dateStr) return false;
+                        if (currentUser !== 'all' && a.user !== currentUser) return false;
+                        return true;
+                    });
+                };
+
+                const weekDayNames = ['일', '월', '화', '수', '목', '금', '토'];
+
+                return (
+                    <div>
+                        <h2 className="text-2xl font-bold mb-6 flex items-center gap-2 text-white">
+                            <Calendar size={28} />
+                            1주일 보기
+                        </h2>
+
+                        {/* 달력 형식의 1주일 보기 */}
+                        <div className="bg-slate-700 rounded-xl shadow-lg overflow-hidden">
+                            {/* 요일 헤더 */}
+                            <div className="grid grid-cols-7 border-b border-slate-600">
+                                {weekDays.map((date, idx) => {
+                                    const isToday = date.toDateString() === today.toDateString();
+                                    const dayName = weekDayNames[date.getDay()];
+                                    
+                                    return (
+                                        <div 
+                                            key={idx} 
+                                            className={`p-4 text-center border-r border-slate-600 last:border-r-0 ${
+                                                isToday ? 'bg-blue-600' : ''
+                                            }`}
+                                        >
+                                            <div className={`text-sm ${isToday ? 'text-white font-bold' : 'text-gray-400'}`}>
+                                                {dayName}
+                                            </div>
+                                            <div className={`text-xl font-bold ${isToday ? 'text-white' : 'text-gray-300'}`}>
+                                                {date.getMonth() + 1}/{date.getDate()}
+                                            </div>
+                                        </div>
+                                    );
+                                })}
+                            </div>
+
+                            {/* 활동 내용 */}
+                            <div className="grid grid-cols-7">
+                                {weekDays.map((date, idx) => {
+                                    const dayActivities = getActivitiesForWeekDay(date);
+                                    const isToday = date.toDateString() === today.toDateString();
+                                    
+                                    return (
+                                        <div 
+                                            key={idx} 
+                                            className={`min-h-[300px] p-3 border-r border-slate-600 last:border-r-0 ${
+                                                isToday ? 'bg-blue-900/20' : ''
+                                            }`}
+                                        >
+                                            {dayActivities.length === 0 ? (
+                                                <div className="flex items-center justify-center h-full text-gray-500 text-sm">
+                                                    활동 없음
+                                                </div>
+                                            ) : (
+                                                <div className="space-y-2">
+                                                    {dayActivities.map(activity => {
+                                                        const ActivityIcon = ACTIVITY_TYPES[activity.type].icon;
+                                                        const activityName = ACTIVITY_TYPES[activity.type].name;
+                                                        
+                                                        let detailInfo = '';
+                                                        if (activity.type === 'exercise') {
+                                                            detailInfo = `${activity.exerciseType} (${activity.duration}분)`;
+                                                        } else if (activity.type === 'snack') {
+                                                            detailInfo = `${activity.food} (${activity.calories}kcal)`;
+                                                        } else if (activity.type === 'digestive') {
+                                                            detailInfo = `${activity.productName} (${activity.time})`;
+                                                        } else if (activity.type === 'subscription') {
+                                                            detailInfo = `${activity.apartmentName} ${activity.size}`;
+                                                        }
+                                                        
+                                                        return (
+                                                            <div
+                                                                key={activity.id}
+                                                                className={`bg-${USERS[activity.user].color}-900/30 p-2 rounded border border-${USERS[activity.user].color}-700/50`}
+                                                            >
+                                                                <div className="flex items-center gap-1 mb-1">
+                                                                    <span className="text-sm">{USERS[activity.user].emoji}</span>
+                                                                    <ActivityIcon size={12} className="text-gray-300" />
+                                                                    <span className="font-bold text-xs text-gray-300">{activityName}</span>
+                                                                </div>
+                                                                <p className="text-xs text-gray-400 break-words">{detailInfo}</p>
+                                                                {activity.note && (
+                                                                    <p className="text-xs text-gray-500 mt-1">💬 {activity.note}</p>
+                                                                )}
+                                                                <div className="flex gap-1 mt-1">
+                                                                    <button
+                                                                        onClick={() => {
+                                                                            setEditingActivity(activity);
+                                                                            setCurrentPage(activity.type);
+                                                                            setShowForm(true);
+                                                                        }}
+                                                                        className="text-blue-400 hover:text-blue-300 p-1"
+                                                                        title="수정"
+                                                                    >
+                                                                        <Edit size={12} />
+                                                                    </button>
+                                                                    <button
+                                                                        onClick={() => deleteActivity(activity.id)}
+                                                                        className="text-red-400 hover:text-red-300 p-1"
+                                                                        title="삭제"
+                                                                    >
+                                                                        <X size={12} />
+                                                                    </button>
+                                                                </div>
+                                                            </div>
+                                                        );
+                                                    })}
+                                                </div>
+                                            )}
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        </div>
+                    </div>
+                );
+            };
+
+            // 달력 페이지
+            const CalendarPage = () => {
+                const days = getDaysInMonth(currentDate);
+                const weekDays = ['일', '월', '화', '수', '목', '금', '토'];
+
+                return (
+                    <div>
+                        <div className="flex justify-between items-center mb-6">
+                            <h2 className="text-2xl font-bold flex items-center gap-2 text-white">
+                                <Calendar size={28} />
+                                {currentDate.getFullYear()}년 {currentDate.getMonth() + 1}월
+                            </h2>
+                            <div className="flex gap-2">
+                                <button
+                                    onClick={() => changeMonth(-1)}
+                                    className="p-2 bg-slate-700 text-gray-300 rounded-lg hover:bg-slate-600"
+                                >
+                                    <ChevronLeft />
+                                </button>
+                                <button
+                                    onClick={() => setCurrentDate(new Date())}
+                                    className="px-4 py-2 bg-slate-700 text-gray-300 rounded-lg hover:bg-slate-600 font-medium"
+                                >
+                                    오늘
+                                </button>
+                                <button
+                                    onClick={() => changeMonth(1)}
+                                    className="p-2 bg-slate-700 text-gray-300 rounded-lg hover:bg-slate-600"
+                                >
+                                    <ChevronRight />
+                                </button>
+                            </div>
+                        </div>
+
+                        <div className="bg-slate-700 rounded-xl shadow-lg overflow-hidden">
+                            <div className="grid grid-cols-7 bg-slate-600">
+                                {weekDays.map((day, idx) => (
+                                    <div
+                                        key={day}
+                                        className={`text-center py-3 font-bold ${
+                                            idx === 0 ? 'text-red-400' : idx === 6 ? 'text-blue-400' : 'text-gray-300'
+                                        }`}
+                                    >
+                                        {day}
+                                    </div>
+                                ))}
+                            </div>
+                            <div className="grid grid-cols-7 border-t border-slate-600">
+                                {days.map((day, idx) => {
+                                    const dayActivities = day ? getActivitiesForDate(day) : [];
+                                    const isToday = day && 
+                                        day === new Date().getDate() && 
+                                        currentDate.getMonth() === new Date().getMonth() &&
+                                        currentDate.getFullYear() === new Date().getFullYear();
+
+                                    return (
+                                        <div
+                                            key={idx}
+                                            className={`min-h-28 p-2 border-r border-b border-slate-600 ${
+                                                !day ? 'bg-slate-800' : ''
+                                            } ${isToday ? 'bg-blue-900/30' : ''}`}
+                                        >
+                                            {day && (
+                                                <>
+                                                    <div className={`text-sm font-bold mb-1 ${
+                                                        isToday ? 'text-blue-400' : 'text-gray-400'
+                                                    }`}>
+                                                        {day}
+                                                    </div>
+                                                    <div className="space-y-1">
+                                                        {dayActivities.map(activity => {
+                                                            const ActivityIcon = ACTIVITY_TYPES[activity.type].icon;
+                                                            
+                                                            let detailInfo = '';
+                                                            if (activity.type === 'exercise') {
+                                                                detailInfo = activity.exerciseType || '';
+                                                            } else if (activity.type === 'snack') {
+                                                                detailInfo = activity.food || '';
+                                                            } else if (activity.type === 'digestive') {
+                                                                detailInfo = activity.productName || '';
+                                                            } else if (activity.type === 'subscription') {
+                                                                detailInfo = activity.apartmentName || '';
+                                                            }
+                                                            
+                                                            return (
+                                                                <div
+                                                                    key={activity.id}
+                                                                    className={`text-xs bg-${USERS[activity.user].color}-900/40 border border-${USERS[activity.user].color}-700/50 px-2 py-1 rounded flex items-center justify-between gap-1`}
+                                                                    title={`${USERS[activity.user].name} - ${ACTIVITY_TYPES[activity.type].name}: ${detailInfo}`}
+                                                                >
+                                                                    <span className="truncate flex items-center gap-1 text-gray-300">
+                                                                        <span>{USERS[activity.user].emoji}</span>
+                                                                        <ActivityIcon size={12} />
+                                                                        <span className="font-medium">{detailInfo || ACTIVITY_TYPES[activity.type].name}</span>
+                                                                    </span>
+                                                                    <button
+                                                                        onClick={() => deleteActivity(activity.id)}
+                                                                        className="text-red-400 hover:text-red-300 flex-shrink-0"
+                                                                        title="삭제"
+                                                                    >
+                                                                        <X size={12} />
+                                                                    </button>
+                                                                </div>
+                                                            );
+                                                        })}
+                                                    </div>
+                                                </>
+                                            )}
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        </div>
+                    </div>
+                );
+            };
+
+            // 활동별 페이지 (운동, 야식, 소화제, 청약)
+            const ActivityPage = ({ type }) => {
+                const filteredData = filterByDateAndUser(activities.filter(a => a.type === type));
+                const ActivityIcon = ACTIVITY_TYPES[type].icon;
+
+                const ActivityForm = () => {
+                    const isEditing = !!editingActivity;
+                    const [formData, setFormData] = useState(
+                        isEditing ? { ...editingActivity } : {
+                            date: new Date().toISOString().split('T')[0]
+                        }
+                    );
+
+                    useEffect(() => {
+                        if (editingActivity) {
+                            setFormData({ ...editingActivity });
+                        }
+                    }, []);
+
+                    const handleSubmit = (e) => {
+                        e.preventDefault();
+                        if (isEditing) {
+                            updateActivity(editingActivity.id, formData);
+                        } else {
+                            addActivity(formData, type);
+                        }
+                        setFormData({ date: new Date().toISOString().split('T')[0] });
+                    };
+
+                    return (
+                        <form onSubmit={handleSubmit} className="bg-slate-700 p-6 rounded-xl mb-6">
+                            <h3 className="text-lg font-bold mb-4 text-white">
+                                {isEditing ? '활동 수정' : '새 활동 추가'}
+                            </h3>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                {(currentUser === 'all' || isEditing) && (
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-300 mb-2">사용자</label>
+                                        <select
+                                            value={formData.user || 'tide'}
+                                            onChange={(e) => setFormData({ ...formData, user: e.target.value })}
+                                            className="w-full px-4 py-2 rounded-lg border border-slate-600 bg-slate-800 text-white focus:ring-2 focus:ring-blue-500"
+                                            required
+                                        >
+                                            {Object.entries(USERS).map(([key, user]) => (
+                                                <option key={key} value={key}>{user.emoji} {user.name}</option>
+                                            ))}
+                                        </select>
+                                    </div>
+                                )}
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-300 mb-2">날짜</label>
+                                    <input
+                                        type="date"
+                                        value={formData.date}
+                                        onChange={(e) => setFormData({ ...formData, date: e.target.value })}
+                                        className="w-full px-4 py-2 rounded-lg border border-slate-600 bg-slate-800 text-white focus:ring-2 focus:ring-blue-500"
+                                        required
+                                    />
+                                </div>
+
+                                {type === 'exercise' && (
+                                    <>
+                                        <div>
+                                            <label className="block text-sm font-medium text-gray-300 mb-2">운동 종류</label>
+                                            <input
+                                                type="text"
+                                                value={formData.exerciseType || ''}
+                                                onChange={(e) => setFormData({ ...formData, exerciseType: e.target.value })}
+                                                placeholder="예: 런닝, 헬스"
+                                                className="w-full px-4 py-2 rounded-lg border border-slate-600 bg-slate-800 text-white placeholder-gray-500 focus:ring-2 focus:ring-blue-500"
+                                                required
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="block text-sm font-medium text-gray-300 mb-2">시간 (분)</label>
+                                            <input
+                                                type="number"
+                                                value={formData.duration || ''}
+                                                onChange={(e) => setFormData({ ...formData, duration: e.target.value })}
+                                                placeholder="예: 30"
+                                                className="w-full px-4 py-2 rounded-lg border border-slate-600 bg-slate-800 text-white placeholder-gray-500 focus:ring-2 focus:ring-blue-500"
+                                                required
+                                            />
+                                        </div>
+                                        <div className="md:col-span-2">
+                                            <label className="block text-sm font-medium text-gray-300 mb-2">메모</label>
+                                            <input
+                                                type="text"
+                                                value={formData.note || ''}
+                                                onChange={(e) => setFormData({ ...formData, note: e.target.value })}
+                                                placeholder="특이사항"
+                                                className="w-full px-4 py-2 rounded-lg border border-slate-600 bg-slate-800 text-white placeholder-gray-500 focus:ring-2 focus:ring-blue-500"
+                                            />
+                                        </div>
+                                    </>
+                                )}
+
+                                {type === 'snack' && (
+                                    <>
+                                        <div>
+                                            <label className="block text-sm font-medium text-gray-300 mb-2">음식</label>
+                                            <input
+                                                type="text"
+                                                value={formData.food || ''}
+                                                onChange={(e) => setFormData({ ...formData, food: e.target.value })}
+                                                placeholder="예: 치킨, 라면"
+                                                className="w-full px-4 py-2 rounded-lg border border-slate-600 bg-slate-800 text-white placeholder-gray-500 focus:ring-2 focus:ring-blue-500"
+                                                required
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="block text-sm font-medium text-gray-300 mb-2">칼로리 (kcal)</label>
+                                            <input
+                                                type="number"
+                                                value={formData.calories || ''}
+                                                onChange={(e) => setFormData({ ...formData, calories: e.target.value })}
+                                                placeholder="예: 500"
+                                                className="w-full px-4 py-2 rounded-lg border border-slate-600 bg-slate-800 text-white placeholder-gray-500 focus:ring-2 focus:ring-blue-500"
+                                                required
+                                            />
+                                        </div>
+                                        <div className="md:col-span-2">
+                                            <label className="block text-sm font-medium text-gray-300 mb-2">메모</label>
+                                            <input
+                                                type="text"
+                                                value={formData.note || ''}
+                                                onChange={(e) => setFormData({ ...formData, note: e.target.value })}
+                                                placeholder="특이사항"
+                                                className="w-full px-4 py-2 rounded-lg border border-slate-600 bg-slate-800 text-white placeholder-gray-500 focus:ring-2 focus:ring-blue-500"
+                                            />
+                                        </div>
+                                    </>
+                                )}
+
+                                {type === 'digestive' && (
+                                    <>
+                                        <div>
+                                            <label className="block text-sm font-medium text-gray-300 mb-2">제품명</label>
+                                            <input
+                                                type="text"
+                                                value={formData.productName || ''}
+                                                onChange={(e) => setFormData({ ...formData, productName: e.target.value })}
+                                                placeholder="예: 베아제"
+                                                className="w-full px-4 py-2 rounded-lg border border-slate-600 bg-slate-800 text-white placeholder-gray-500 focus:ring-2 focus:ring-blue-500"
+                                                required
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="block text-sm font-medium text-gray-300 mb-2">복용 시간</label>
+                                            <input
+                                                type="time"
+                                                value={formData.time || ''}
+                                                onChange={(e) => setFormData({ ...formData, time: e.target.value })}
+                                                className="w-full px-4 py-2 rounded-lg border border-slate-600 bg-slate-800 text-white focus:ring-2 focus:ring-blue-500"
+                                                required
+                                            />
+                                        </div>
+                                        <div className="md:col-span-2">
+                                            <label className="block text-sm font-medium text-gray-300 mb-2">메모</label>
+                                            <input
+                                                type="text"
+                                                value={formData.note || ''}
+                                                onChange={(e) => setFormData({ ...formData, note: e.target.value })}
+                                                placeholder="특이사항"
+                                                className="w-full px-4 py-2 rounded-lg border border-slate-600 bg-slate-800 text-white placeholder-gray-500 focus:ring-2 focus:ring-blue-500"
+                                            />
+                                        </div>
+                                    </>
+                                )}
+
+                                {type === 'subscription' && (
+                                    <>
+                                        <div>
+                                            <label className="block text-sm font-medium text-gray-300 mb-2">아파트명</label>
+                                            <input
+                                                type="text"
+                                                value={formData.apartmentName || ''}
+                                                onChange={(e) => setFormData({ ...formData, apartmentName: e.target.value })}
+                                                placeholder="예: 래미안"
+                                                className="w-full px-4 py-2 rounded-lg border border-slate-600 bg-slate-800 text-white placeholder-gray-500 focus:ring-2 focus:ring-blue-500"
+                                                required
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="block text-sm font-medium text-gray-300 mb-2">평형</label>
+                                            <input
+                                                type="text"
+                                                value={formData.size || ''}
+                                                onChange={(e) => setFormData({ ...formData, size: e.target.value })}
+                                                placeholder="예: 84평형"
+                                                className="w-full px-4 py-2 rounded-lg border border-slate-600 bg-slate-800 text-white placeholder-gray-500 focus:ring-2 focus:ring-blue-500"
+                                                required
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="block text-sm font-medium text-gray-300 mb-2">가격 (만원)</label>
+                                            <input
+                                                type="text"
+                                                value={formData.price || ''}
+                                                onChange={(e) => setFormData({ ...formData, price: e.target.value })}
+                                                placeholder="예: 100,000"
+                                                className="w-full px-4 py-2 rounded-lg border border-slate-600 bg-slate-800 text-white placeholder-gray-500 focus:ring-2 focus:ring-blue-500"
+                                                required
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="block text-sm font-medium text-gray-300 mb-2">당첨자 발표일</label>
+                                            <input
+                                                type="date"
+                                                value={formData.announcementDate || ''}
+                                                onChange={(e) => setFormData({ ...formData, announcementDate: e.target.value })}
+                                                className="w-full px-4 py-2 rounded-lg border border-slate-600 bg-slate-800 text-white focus:ring-2 focus:ring-blue-500"
+                                                required
+                                            />
+                                        </div>
+                                    </>
+                                )}
+                            </div>
+                            <div className="flex gap-2 mt-4">
+                                <button
+                                    type="submit"
+                                    className="flex-1 bg-blue-500 text-white py-2 rounded-lg hover:bg-blue-600 transition-all font-medium"
+                                >
+                                    {isEditing ? '수정하기' : '추가하기'}
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        setShowForm(false);
+                                        setEditingActivity(null);
+                                    }}
+                                    className="px-6 bg-slate-600 text-gray-300 py-2 rounded-lg hover:bg-slate-500 transition-all font-medium"
+                                >
+                                    취소
+                                </button>
+                            </div>
+                        </form>
+                    );
+                };
+
+                return (
+                    <div>
+                        <h2 className="text-2xl font-bold mb-6 flex items-center gap-2 text-white">
+                            <ActivityIcon size={28} />
+                            {ACTIVITY_TYPES[type].name}
+                        </h2>
+
+                        {(showForm || editingActivity) && <ActivityForm />}
+
+                        {!showForm && !editingActivity && (
+                            <button
+                                onClick={() => setShowForm(true)}
+                                className="w-full mb-6 flex items-center justify-center gap-2 bg-blue-500 text-white py-3 rounded-lg hover:bg-blue-600 transition-all font-medium"
+                            >
+                                <Plus size={20} />
+                                새로 추가
+                            </button>
+                        )}
+
+                        <div className="space-y-3">
+                            {filteredData.map((activity) => (
+                                <div key={activity.id} className="bg-slate-700 p-5 rounded-xl shadow-md hover:shadow-lg transition-all">
+                                    <div className="flex justify-between items-start">
+                                        <div className="flex-1">
+                                            <div className="flex items-center gap-2 mb-2">
+                                                <span className={`px-2 py-1 rounded text-xs font-bold bg-${USERS[activity.user].color}-100 text-${USERS[activity.user].color}-700 flex items-center gap-1`}>
+                                                    <span>{USERS[activity.user].emoji}</span>
+                                                    <span>{USERS[activity.user].name}</span>
+                                                </span>
+                                                <span className="text-sm text-gray-400">{activity.date}</span>
+                                            </div>
+                                            
+                                            {type === 'exercise' && (
+                                                <div>
+                                                    <p className="font-bold text-lg text-white">{activity.exerciseType}</p>
+                                                    <p className="text-gray-400">{activity.duration}분</p>
+                                                    {activity.note && <p className="text-sm text-gray-500 mt-1">{activity.note}</p>}
+                                                </div>
+                                            )}
+                                            
+                                            {type === 'snack' && (
+                                                <div>
+                                                    <p className="font-bold text-lg text-white">{activity.food}</p>
+                                                    <p className="text-gray-400">{activity.calories} kcal</p>
+                                                    {activity.note && <p className="text-sm text-gray-500 mt-1">{activity.note}</p>}
+                                                </div>
+                                            )}
+                                            
+                                            {type === 'digestive' && (
+                                                <div>
+                                                    <p className="font-bold text-lg text-white">{activity.productName}</p>
+                                                    <p className="text-gray-400">{activity.time}</p>
+                                                    {activity.note && <p className="text-sm text-gray-500 mt-1">{activity.note}</p>}
+                                                </div>
+                                            )}
+                                            
+                                            {type === 'subscription' && (
+                                                <div>
+                                                    <p className="font-bold text-lg text-white">{activity.apartmentName}</p>
+                                                    <div className="grid grid-cols-2 gap-2 mt-2">
+                                                        <p className="text-sm text-gray-400">평형: {activity.size}</p>
+                                                        <p className="text-sm text-gray-400">가격: {activity.price}만원</p>
+                                                        <p className="text-sm text-gray-400">발표일: {activity.announcementDate}</p>
+                                                    </div>
+                                                </div>
+                                            )}
+                                        </div>
+                                        <div className="flex gap-2">
+                                            <button
+                                                onClick={() => {
+                                                    setEditingActivity(activity);
+                                                    setShowForm(true);
+                                                }}
+                                                className="text-blue-400 hover:text-blue-300 p-2"
+                                                title="수정"
+                                            >
+                                                <Edit size={18} />
+                                            </button>
+                                            <button
+                                                onClick={() => deleteActivity(activity.id)}
+                                                className="text-red-400 hover:text-red-300 p-2"
+                                                title="삭제"
+                                            >
+                                                <X size={18} />
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            ))}
+                            {filteredData.length === 0 && (
+                                <div className="text-center py-12 text-gray-500">
+                                    <ActivityIcon size={48} />
+                                    <p className="mt-4">기록이 없습니다.</p>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                );
+            };
+
+            return (
+                <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 p-6">
+                    <div className="max-w-7xl mx-auto">
+                        {/* 헤더 */}
+                        <div className="mb-8">
+                            <h1 className="text-4xl font-bold text-white mb-4">일상 기록 관리</h1>
+                            
+                            {/* 사용자 선택 */}
+                            <div className="flex gap-3 mb-4">
+                                <button
+                                    onClick={() => setCurrentUser('all')}
+                                    className={`px-6 py-3 rounded-lg font-bold transition-all ${
+                                        currentUser === 'all'
+                                            ? 'bg-gradient-to-r from-blue-500 to-amber-500 text-white shadow-lg scale-105'
+                                            : 'bg-slate-700 text-gray-300 hover:bg-slate-600'
+                                    }`}
+                                >
+                                    전체
+                                </button>
+                                {Object.entries(USERS).map(([key, user]) => (
+                                    <button
+                                        key={key}
+                                        onClick={() => setCurrentUser(key)}
+                                        className={`flex items-center gap-2 px-6 py-3 rounded-lg font-bold transition-all ${
+                                            currentUser === key
+                                                ? `bg-${user.color}-500 text-white shadow-lg scale-105`
+                                                : 'bg-slate-700 text-gray-300 hover:bg-slate-600'
+                                        }`}
+                                    >
+                                        <span className="text-xl">{user.emoji}</span>
+                                        <span>{user.name}</span>
+                                    </button>
+                                ))}
+                            </div>
+
+                            {/* 시간 필터 */}
+                            <div className="flex gap-2 mb-4">
+                                <button
+                                    onClick={() => setTimeFilter('week')}
+                                    className={`px-4 py-2 rounded-lg ${
+                                        timeFilter === 'week' ? 'bg-blue-500 text-white' : 'bg-slate-700 text-gray-300'
+                                    }`}
+                                >
+                                    1주일
+                                </button>
+                                <button
+                                    onClick={() => setTimeFilter('month')}
+                                    className={`px-4 py-2 rounded-lg ${
+                                        timeFilter === 'month' ? 'bg-blue-500 text-white' : 'bg-slate-700 text-gray-300'
+                                    }`}
+                                >
+                                    1개월
+                                </button>
+                                <button
+                                    onClick={() => setTimeFilter('3months')}
+                                    className={`px-4 py-2 rounded-lg ${
+                                        timeFilter === '3months' ? 'bg-blue-500 text-white' : 'bg-slate-700 text-gray-300'
+                                    }`}
+                                >
+                                    3개월
+                                </button>
+                                <button
+                                    onClick={() => setTimeFilter('all')}
+                                    className={`px-4 py-2 rounded-lg ${
+                                        timeFilter === 'all' ? 'bg-blue-500 text-white' : 'bg-slate-700 text-gray-300'
+                                    }`}
+                                >
+                                    전체
+                                </button>
+                            </div>
+
+                            {/* CSV 저장/불러오기 */}
+                            <div className="space-y-3">
+                                <div className="flex gap-2">
+                                    <button
+                                        onClick={exportToCSV}
+                                        className="flex items-center gap-2 px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-all"
+                                    >
+                                        <Download size={18} />
+                                        CSV로 저장
+                                    </button>
+                                    <label className="flex items-center gap-2 px-4 py-2 bg-purple-500 text-white rounded-lg hover:bg-purple-600 transition-all cursor-pointer">
+                                        <Upload size={18} />
+                                        CSV 불러오기
+                                        <input
+                                            type="file"
+                                            accept=".csv"
+                                            onChange={importFromCSV}
+                                            className="hidden"
+                                            id="csv-upload-input"
+                                        />
+                                    </label>
+                                </div>
+                                
+                                {/* Drag & Drop 영역 */}
+                                <div
+                                    onDragOver={(e) => {
+                                        e.preventDefault();
+                                        e.currentTarget.classList.add('border-blue-500', 'bg-blue-900/20');
+                                    }}
+                                    onDragLeave={(e) => {
+                                        e.preventDefault();
+                                        e.currentTarget.classList.remove('border-blue-500', 'bg-blue-900/20');
+                                    }}
+                                    onDrop={(e) => {
+                                        e.preventDefault();
+                                        e.currentTarget.classList.remove('border-blue-500', 'bg-blue-900/20');
+                                        const file = e.dataTransfer.files[0];
+                                        if (file && file.name.endsWith('.csv')) {
+                                            const fakeEvent = { target: { files: [file] } };
+                                            importFromCSV(fakeEvent);
+                                        } else {
+                                            alert('CSV 파일만 업로드 가능합니다.');
+                                        }
+                                    }}
+                                    className="border-2 border-dashed border-slate-600 rounded-lg p-6 text-center cursor-pointer hover:border-slate-500 transition-all"
+                                    onClick={() => document.getElementById('csv-upload-input').click()}
+                                >
+                                    <Upload size={32} className="mx-auto mb-2 text-gray-400" />
+                                    <p className="text-gray-400 text-sm">
+                                        CSV 파일을 여기에 드래그하거나 클릭하세요
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* 네비게이션 */}
+                        <div className="flex flex-wrap gap-3 mb-8">
+                            <NavButton page="dashboard" icon={BarChart3} label="대시보드" />
+                            <NavButton page="calendar" icon={Calendar} label="달력" />
+                            <NavButton page="week" icon={Calendar} label="1주일 보기" />
+                            <NavButton page="exercise" icon={Dumbbell} label="운동" />
+                            <NavButton page="snack" icon={Moon} label="야식" />
+                            <NavButton page="digestive" icon={Pill} label="소화제" />
+                            <NavButton page="subscription" icon={Home} label="청약" />
+                        </div>
+
+                        {/* 메인 콘텐츠 */}
+                        <div className="bg-slate-800/90 backdrop-blur-sm rounded-2xl shadow-xl p-8">
+                            {currentPage === 'dashboard' && <DashboardPage />}
+                            {currentPage === 'week' && <WeekViewPage />}
+                            {currentPage === 'calendar' && <CalendarPage />}
+                            {currentPage === 'exercise' && <ActivityPage type="exercise" />}
+                            {currentPage === 'snack' && <ActivityPage type="snack" />}
+                            {currentPage === 'digestive' && <ActivityPage type="digestive" />}
+                            {currentPage === 'subscription' && <ActivityPage type="subscription" />}
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        ReactDOM.render(<DailyTracker />, document.getElementById('root'));
+    </script>
+</body>
+</html>
